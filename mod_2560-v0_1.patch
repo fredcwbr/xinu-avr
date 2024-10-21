@@ -1,0 +1,131 @@
+diff --git a/apps/shell/main.c b/apps/shell/main.c
+index f73caf0..a85959a 100644
+--- a/apps/shell/main.c
++++ b/apps/shell/main.c
+@@ -448,6 +448,6 @@ process	main(void)
+ 
+     /* Terminate the shell process by returning from the top level */
+ 
+-    // fprintf(dev,SHELL_EXITMSG);
++    fprintf(dev,SHELL_EXITMSG);
+     return OK;
+ }
+diff --git a/apps/shell/xsh_memdump.c b/apps/shell/xsh_memdump.c
+index 136f26c..17d57e6 100644
+--- a/apps/shell/xsh_memdump.c
++++ b/apps/shell/xsh_memdump.c
+@@ -21,7 +21,8 @@ shellcmd xsh_memdump(int nargs, char *args[])
+ {
+ 
+ 	int from = 0;
+-	int to = 0x8FF;		/* AVR atmega328p top RAM address */
++	// int to = 0x8FF;		/* AVR atmega328p top RAM address */
++	int to = 0x10FF;		/* AVR atmega2560 top RAM address */
+ 
+ 	if (nargs == 3) {
+ 		from = args[1];
+diff --git a/compile/Makefile b/compile/Makefile
+index f6c595f..53102dc 100644
+--- a/compile/Makefile
++++ b/compile/Makefile
+@@ -9,7 +9,10 @@
+ #########################################################################
+ 
+ COMPILER_ROOT	=	avr-
+-PNAME		=	ATMEGA328P
++PNAME		=	ATMEGA2560
++# PNAME		=	ATMEGA328P
++PAVRDUDE	=	atmega2560
++# PAVRDUDE	=	atmega328p
+ PLAT		=	Platform_$(PNAME)
+ TOPDIR		=	..
+ 
+@@ -54,8 +57,8 @@ DEFS		= 	-DVERSION=\""Xinu AVR 0.1 RAFA\0"\"
+ 
+ # Compiler flags
+ # CFLAGS  = -mcpu=cortex-m3 -mno-unaligned-access -mthumb -fno-builtin -fno-stack-protector -nostdlib -c -Wall -O ${DEFS} ${INCLUDE}
+-# CFLAGS  = -DF_CPU=16000000UL -mmcu=atmega328p -mrelax -fno-builtin -fno-stack-protector -nostdlib -c -Wall -Os ${DEFS} ${INCLUDE}
+-CFLAGS  = -DF_CPU=16000000UL -mmcu=atmega328p  -fno-builtin -c -Wall -Os ${DEFS} ${INCLUDE}
++# CFLAGS  = -DF_CPU=16000000UL -mmcu=${PAVRDUDE} -mrelax -fno-builtin -fno-stack-protector -nostdlib -c -Wall -Os ${DEFS} ${INCLUDE}
++CFLAGS  = -DF_CPU=16000000UL -mmcu=${PAVRDUDE}  -fno-builtin -c -Wall -Os ${DEFS} ${INCLUDE}
+ # RAFA AGREGA LAS 3 de ABAJO para reducir size
+ CFLAGS += -Wl,-static
+ CFLAGS += -ffunction-sections
+@@ -69,8 +72,8 @@ SFLAGS  = ${INCLUDE}
+ # Loader flags
+ 
+ # RAFA LDFLAGS = -Wl,--wrap,malloc,--wrap,free,--wrap,realloc,--wrap,fdevopen
+-# LDFLAGS = -mmcu=atmega328p -nostartfiles -T ld.script  -Wl,-Map,xinu.map
+-LDFLAGS = -mmcu=atmega328p -Wl,-Map,xinu.map -lm -Wl,--gc-sections -mrelax
++# LDFLAGS = -mmcu=${PAVRDUDE} -nostartfiles -T ld.script  -Wl,-Map,xinu.map
++LDFLAGS = -mmcu=${PAVRDUDE} -Wl,-Map,xinu.map -lm -Wl,--gc-sections -mrelax
+ 
+ 
+ all:	xinu
+@@ -135,9 +138,12 @@ examine-header:
+ 
+ flash:
+ 	avr-objcopy -O ihex -R .eeprom $(XINU) $(XINUHEX)
+-	avrdude -p atmega328p -c arduino -P `ls -1 /dev/ttyUSB* /dev/ttyACM* 2>/dev/null | head -1` -b 57600 -D -U flash:w:$(XINUHEX):i 
+-	#|| avrdude -p atmega328p -c arduino -P /dev/ttyACM0 -b 115200 -D -U flash:w:$(XINUHEX):i || avrdude -p atmega328p -c arduino -P /dev/ttyUSB0 -b 115200 -D -U flash:w:$(XINUHEX):i || avrdude -p atmega328p -c arduino -P /dev/ttyUSB0 -b 57600 -D -U flash:w:$(XINUHEX):i || avrdude -p atmega328p -c arduino -P /dev/ttyUSB0 -b 57600 -D -U flash:w:$(XINUHEX):i
+-	# avrdude -p atmega328p -c arduino -P /dev/ttyUSB0 -b 115200 -D -U flash:w:$(FIRMWARE):i
++	avrdude -p ${PAVRDUDE} -c arduino -P `ls -1 /dev/ttyUSB* /dev/ttyACM* 2>/dev/null | head -1` -b 57600 -D -U flash:w:$(XINUHEX):i 
++	#|| avrdude -p ${PAVRDUDE} -c arduino -P /dev/ttyACM0 -b 115200 -D -U flash:w:$(XINUHEX):i || avrdude -p ${PAVRDUDE} -c arduino -P /dev/ttyUSB0 -b 115200 -D -U flash:w:$(XINUHEX):i || avrdude -p ${PAVRDUDE} -c arduino -P /dev/ttyUSB0 -b 57600 -D -U flash:w:$(XINUHEX):i || avrdude -p ${PAVRDUDE} -c arduino -P /dev/ttyUSB0 -b 57600 -D -U flash:w:$(XINUHEX):i
++	# avrdude -p ${PAVRDUDE} -c arduino -P /dev/ttyUSB0 -b 115200 -D -U flash:w:$(FIRMWARE):i
++
++flash2560:
++	 avrdude -C/etc/avrdude.conf -v -p${PAVRDUDE} -c wiring -P/dev/ttyACM0 -b115200 -D -Uflash:w:${XINUHEX}:i
+ 
+ 
+ qemu:
+diff --git a/compile/version b/compile/version
+index 56980bd..938ac1e 100644
+--- a/compile/version
++++ b/compile/version
+@@ -1 +1 @@
+-Xinu for ATMEGA328P -- version #281  (lechnerm)  mié may 27 10:45:49 -03 2020
++Xinu for ATMEGA2560 -- version #5  (fredcw)  sáb 19 out 2024 19:45:58 -03
+diff --git a/lib/avr_messages.c b/lib/avr_messages.c
+index 729871c..025fa18 100644
+--- a/lib/avr_messages.c
++++ b/lib/avr_messages.c
+@@ -4,7 +4,7 @@
+ typedef unsigned int size_t;
+ #include <avr/pgmspace.h>
+ 
+-const __flash char sysinit_m0[] = "\nWelcome to Xinu!\n\n\r\tXinu OS Copyright (c) 2012, 2015\n\r\tDouglas E. Comer and CRC Press, Inc.\n\n\r\tXinu OS for AVR atmega328p v0.1 (c) 2020\n\r\tRafael Ignacio Zurita <rafa@fi.uncoma.edu.ar>\n\n\r";
++const __flash char sysinit_m0[] = "\nWelcome to Xinu!\n\n\r\tXinu OS Copyright (c) 2012, 2015\n\r\tDouglas E. Comer and CRC Press, Inc.\n\n\r\tXinu OS for AVR atmega2560 v0.1a (c) 2020\n\r\tRafael Ignacio Zurita <rafa@fi.uncoma.edu.ar>\nMod by fredcw@gmail.com\n\n\r";
+ const __flash char m1[] = "\n\nRecreating shell\n\n";
+ const __flash char m2[] = "Out of message nodes";
+ const __flash char m3[] = "\n\nAll user processes have completed.\n\n";
+diff --git a/main/xsh_memdump.c b/main/xsh_memdump.c
+index 136f26c..8f9da6c 100644
+--- a/main/xsh_memdump.c
++++ b/main/xsh_memdump.c
+@@ -21,7 +21,8 @@ shellcmd xsh_memdump(int nargs, char *args[])
+ {
+ 
+ 	int from = 0;
+-	int to = 0x8FF;		/* AVR atmega328p top RAM address */
++	// int to = 0x8FF;		/* AVR atmega328p top RAM address */
++	int to = 0x1FFF;		/* AVR atmega2560 top RAM address */
+ 
+ 	if (nargs == 3) {
+ 		from = args[1];
+diff --git a/system/meminit.c b/system/meminit.c
+index 6e83fa9..11c484c 100644
+--- a/system/meminit.c
++++ b/system/meminit.c
+@@ -45,7 +45,11 @@ void	meminit(void)
+ 	/* Initialize the minheap and maxheap variables */
+ 
+ 	minheap = ptr_bss_end+1;
+-	maxheap = 0x008008FF;	/* AVR atmega328p stack pointer when booting */
++	// maxheap = 0x008008FF;	/* AVR atmega328p stack pointer when booting */
++	// maxheap = 0x00801FFF;	/* AVR atmega2560 stack pointer when booting */
++        //  Maskout .data memory base addres  and add 0x200 start internal RAM address of 2560 
++	//  and 8K memory -->> 
++	maxheap = (ptr_bss_end & 0x00800000) + 0x00000200 + 0x00001FFF;
+ 
+ 	/* Initialize the memory list as one big block */
+ 
